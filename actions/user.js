@@ -3,7 +3,7 @@
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server"
 import { generateAIInsights } from "./dashboard";
-import { redirect } from "next/navigation";
+
 
 export async function updateUser(data){
       //check if the user is logged in or not

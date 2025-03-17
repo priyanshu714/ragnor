@@ -8,21 +8,20 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(uuid())
-  clerkUserId      String    @unique
-  email            String    @unique
-  name             String?
-  imageUrl         String?
-  industry         String    // Industry must be provided
-  industryInsight  IndustryInsight? @relation(fields: [industryInsightId], references: [id])
-  industryInsightId String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id            String    @id @default(uuid())
+  clerkUserId   String    @unique // clerk user id
+  email         String    @unique
+  name          String?
+  imageUrl      String?
+  industry      String?    // Combined industry-subindustry (e.g., "tech-software-development")
+  industryInsight IndustryInsight? @relation(fields: [industry], references: [industry])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Profile fields
   bio           String?
   experience    Int?      // Years of experience
-
+  
   // Relations
   skills        String[]  // Array of skills
   assessments   Assessment[]
@@ -30,46 +29,29 @@ model User {
   coverLetter   CoverLetter[]
 }
 
-model IndustryInsight {
-  id               String   @id @default(cuid())
-  industry         String   @unique
-  users            User[]
-  salaryRanges     Json[]   // If frequently queried, consider normalizing
-  growthRate       Float
-  demandLevel      DemandLevel
-  marketOutlook    MarketOutlook
-  topSkills        String[]
-  keyTrends        String[]
-  recommendedSkills String[]
-  lastUpdated      DateTime @default(now())
-  nextUpdate       DateTime @default(dbgenerated("CURRENT_TIMESTAMP + interval '7 days'"))
-
-  @@index([industry])
-}
-
 model Assessment {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation(fields: [userId], references: [id])
-  quizScore       Float
-  questions       Json[]    // Array of {question, answer, userAnswer, isCorrect}
-  category        String    // Technical, Behavioral, etc.
-  improvementTip  String?   // AI-generated improvement tip
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  quizScore     Float     // Overall quiz score
+  questions     Json[]    // Array of {question, answer, userAnswer, isCorrect}
+  category      String    // "Technical", "Behavioral", etc.
+  improvementTip String?  // AI-generated improvement tip
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([userId])
 }
 
 model Resume {
-  id           String    @id @default(cuid())
-  userId       String    @unique
-  user         User      @relation(fields: [userId], references: [id])
-  content      String    @db.Text // Markdown content
-  atsScore     Float?
-  feedback     String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  userId      String    @unique    // One resume per user
+  user        User      @relation(fields: [userId], references: [id])
+  content     String    @db.Text // Markdown content
+  atsScore    Float?
+  feedback    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model CoverLetter {
@@ -78,13 +60,42 @@ model CoverLetter {
   user            User      @relation(fields: [userId], references: [id])
   content         String    // Markdown content
   jobDescription  String?
-  companyName     String
-  jobTitle        String
-  status          String    @default("draft") // Draft, Completed
+  companyName     String    // Name of the company applying to
+  jobTitle        String    // Position applying for
+  status          String    @default("draft") // draft, completed
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@index([userId])
+}
+
+// Combined Industry Trends and Salary Insights
+model IndustryInsight {
+  id            String    @id @default(cuid())
+  industry      String    @unique  // The industry this data belongs to (e.g., "tech-software-development")
+  
+  // Users in this industry
+  users         User[]
+  
+  // Salary data
+  salaryRanges  Json[]    // Array of { role: string, min: float, max: float, median: float, location: string? }
+  
+  // Industry trends
+  growthRate    Float     // Industry growth rate
+  demandLevel   DemandLevel    // "High", "Medium", "Low"
+  topSkills     String[]  // Most in-demand skills
+  
+  // Market conditions
+  marketOutlook MarketOutlook    // "Positive", "Neutral", "Negative"
+  keyTrends     String[]  // Array of current industry trends
+  
+  // Learning suggestions
+  recommendedSkills String[]  // Skills recommended for the industry
+  
+  lastUpdated   DateTime  @default(now())
+  nextUpdate    DateTime  // Scheduled update time
+
+  @@index([industry])
 }
 
 enum DemandLevel {
